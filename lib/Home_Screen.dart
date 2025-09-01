@@ -1,9 +1,15 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:quick_actions/quick_actions.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:translator/translator.dart'; // Added for translation
+import 'package:translator/translator.dart';
+
+import 'Notification/Local_Notification.dart';
+import 'Screens/Profile_screen.dart';
+import 'Screens/Search_screen.dart'; // Added for translation
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -18,15 +24,44 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isListening = false;
   String _recognizedText = '';
   String _translatedText = '';
+  String ScreenName = 'Speech and Recognition';
   String _selectedLanguage = 'en';
+  String _shortcut = 'No shortcut selected';
   final GoogleTranslator _translator = GoogleTranslator();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initSpeech();
+    _initSpeech();
+    final QuickActions quickActions = const QuickActions();
+    quickActions.initialize((String ShortCutType) {
+      setState(() {
+        _shortcut = ShortCutType;
+      });
+      if (_shortcut == 'action_search') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SearchScreen()),
+        );
+      } else if (_shortcut == 'action_profile') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ProfileScreen()),
+        );
+      }
     });
+    quickActions.setShortcutItems(<ShortcutItem>[
+      const ShortcutItem(
+        type: 'action_search',
+        localizedTitle: 'Search Screen',
+        icon: 'search',
+      ),
+      const ShortcutItem(
+        type: 'action_profile',
+        localizedTitle: 'Profile Screen',
+        icon: 'profile',
+      ),
+    ]);
   }
 
   Future<void> _initSpeech() async {
@@ -39,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
       onStatus: (status) => log("STATUS: $status"),
       onError: (error) => log("ERROR: $error"),
     );
-    if (!mounted) return;
+    // if (!mounted) return;
     setState(() {
       _speechAvailable = available;
     });
@@ -96,6 +131,50 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  sendLocalNotification() async {
+    await LocalNotification.showInstantNotification(
+      title: "Instant Message",
+      body: "samplee test case",
+    );
+  }
+
+  sendScheduledNotification() async {
+    try {
+      await LocalNotification.scheduleNotification(
+        "Scheduled Notification",
+        "This is the sheduled message",
+        DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          15,
+          38,
+        ),
+        1,
+      );
+      log("oooooooooooooooooo");
+    } catch (e) {
+      log("enterr");
+      log(e.toString());
+    }
+  }
+
+  sendRecurringNotification() async {
+    await LocalNotification.scheduleRepeatingNotification(
+      "Recurring Notification",
+      "Sucesss",
+      DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+        15,
+        38,
+      ),
+      DateTimeComponents.time,
+      1,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,10 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              "Speech Recognition & Translation",
-              style: TextStyle(fontSize: 22),
-            ),
+            Text('${ScreenName}', style: TextStyle(fontSize: 22)),
             const SizedBox(height: 22),
             DropdownButton<String>(
               value: _selectedLanguage,
@@ -163,7 +239,7 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: _clearText,
+                  onPressed: sendRecurringNotification,
                   child: const Text(
                     "Clear",
                     style: TextStyle(color: Colors.white),
@@ -171,9 +247,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 const SizedBox(width: 45),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
                   onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: _translatedText.isEmpty ? _recognizedText : _translatedText));
+                    await Clipboard.setData(
+                      ClipboardData(
+                        text: _translatedText.isEmpty
+                            ? _recognizedText
+                            : _translatedText,
+                      ),
+                    );
                   },
                   child: const Text(
                     "Copy",
@@ -191,10 +275,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   await _startListening();
                 }
               },
-              icon: Icon(
-                _isListening ? Icons.mic : Icons.mic_none,
-                size: 64,
-              ),
+              icon: Icon(_isListening ? Icons.mic : Icons.mic_none, size: 64),
               color: _isListening ? Colors.red : Colors.green,
             ),
           ],

@@ -40,7 +40,13 @@ dependencies:
   permission_handler: any
   flutter_translate: ^4.1.0
   translator: ^1.0.3+1
-  currency_pick: ^0.0.1
+  quick_actions: ^1.1.0
+  flutter_local_notifications: ^19.4.0
+  timezone: ^0.10.1
+  nb_utils: ^7.0.8
+  dio: ^5.9.0
+  pretty_dio_logger: ^1.4.0
+  flutter_alice: ^2.0.1
 
 dev_dependencies:
   flutter_test:
